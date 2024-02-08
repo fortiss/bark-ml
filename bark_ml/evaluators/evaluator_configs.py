@@ -8,8 +8,6 @@ from bark.core.world.evaluation import \
   EvaluatorStepCount, EvaluatorDrivableArea
 from bark.core.geometry import Point2d
 from bark_ml.evaluators.general_evaluator import *
-from bark_ml.evaluators.stl.evaluator_stl import *
-from bark_ml.evaluators.stl.label_functions.safe_distance_label_function import *
 
 class GoalReached(GeneralEvaluator):
   def __init__(self, params):

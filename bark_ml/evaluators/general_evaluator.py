@@ -13,7 +13,7 @@ from bark.runtime.commons.parameters import ParameterServer
 from bark.core.models.dynamic import StateDefinition
 from bark.core.geometry import Point2d, Within, Distance
 from bark.core.world.evaluation.ltl import *
-
+from bark.core.world.evaluation.stl import *
 
 class Functor:
   def __init__(self, params):
@@ -414,7 +414,7 @@ class TrafficRuleLTLFunctor(Functor):
     # print("current traffic rule violations:", self.traffic_rule_violations)
     if self.traffic_rule_violations > max_vio_num:
       return True, 0, {}
-    return False, self.WeightedReward(current_traffic_rule_violations/max_vio_num), {}
+    return False, self.WeightedReward(current_traffic_rule_violations / max_vio_num), {}
   def Reset(self):
     # self.traffic_rule_violation_pre = 0
     self.traffic_rule_violation_post = 0
@@ -430,16 +430,16 @@ class TrafficRuleSTLFunctor(Functor):
     self.traffic_rule_violation_pre = 0
     self.traffic_rule_violation_post = 0
     self.traffic_rule_violations = 0
-    self.traffic_rule_eval_result = ""
+    self.traffic_rule_robustness = 0.0
     super().__init__(params=self._params)
 
 
   def __call__(self, observed_world, action, eval_results):
-    self.traffic_rule_eval_result = eval_results[self._params["RuleName"]]
-    # print("Eval result in functor: ", self.traffic_rule_eval_result)
+    traffic_rule_eval_result = eval_results[self._params["RuleName"]]
+    # print("Eval result in functor: ", traffic_rule_eval_result)
 
-    if isinstance(self.traffic_rule_eval_result, str):
-      results = self.traffic_rule_eval_result.split(";")    
+    if isinstance(traffic_rule_eval_result, str):
+      results = traffic_rule_eval_result.split(";")    
       self.traffic_rule_violation_post = float(results[0])
       self.traffic_rule_robustness = float(results[1])
 
@@ -448,17 +448,18 @@ class TrafficRuleSTLFunctor(Functor):
           self.traffic_rule_violation_pre = self.traffic_rule_violation_post
 
       current_traffic_rule_violations = self.traffic_rule_violation_post - self.traffic_rule_violation_pre
-      self.traffic_rule_violations = self.traffic_rule_violations + current_traffic_rule_violations
+      self.traffic_rule_violations += current_traffic_rule_violations
       self.traffic_rule_violation_pre = self.traffic_rule_violation_post
       # print("current traffic rule violations:", self.traffic_rule_violations)
 
       if self.traffic_rule_violations > max_vio_num:
         return True, 0, {}
-    else:
+    elif isinstance(traffic_rule_eval_result, float):
       # print("WARNING: # of violations are NOT considered")
-      self.traffic_rule_robustness = self.traffic_rule_eval_result
+      self.traffic_rule_robustness = traffic_rule_eval_result
 
-    return False, self.WeightedReward(self.traffic_rule_robustness), {}
+    penalty = -self.traffic_rule_robustness
+    return False, self.WeightedReward(penalty), {}
   
   def Reset(self):
     # self.traffic_rule_violation_pre = 0
