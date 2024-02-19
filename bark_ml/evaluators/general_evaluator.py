@@ -14,7 +14,7 @@ from bark.core.models.dynamic import StateDefinition
 from bark.core.geometry import Point2d, Within, Distance
 from bark.core.world.evaluation.ltl import *
 from bark_ml.evaluators.stl.safe_distance_label_function import *
-from bark_ml.evaluators.stl.evaluator_stl import *
+# from bark_ml.evaluators.stl.evaluator_stl import *
 
 class Functor:
   def __init__(self, params):

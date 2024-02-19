@@ -1,3 +1,10 @@
+config_setting(
+    name = "_ltl_rules",
+    define_values = {
+        "ltl_rules": "true",
+    },
+)
+
 py_library(
     name = "evaluator_stl",
     srcs = ["__init__.py",

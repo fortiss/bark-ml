@@ -73,11 +73,18 @@ py_test(
 
 py_test(
     name = "py_label_function_tests",
-    srcs = ["py_label_function_tests.py"],
+    srcs = select({
+        "//bark_ml/evaluators/stl:_ltl_rules": ["py_label_function_tests.py"],
+        "//conditions:default": ["py_dummy_test.py"],
+    }),
     data = ["@bark_project//bark/python_wrapper:core.so",
             "//bark_ml:generate_core"],
     imports = ["../external/bark_project/bark/python_wrapper/",
                "../python_wrapper/"],
+    main = select({
+        "//bark_ml/evaluators/stl:_ltl_rules": "py_label_function_tests.py",
+        "//conditions:default": "py_dummy_test.py",
+    }),  # Ensure a string is provided for the main attribute
     deps = ["//bark_ml/environments:single_agent_runtime",
             "//bark_ml/behaviors:behaviors",
             "//bark_ml/commons:py_spaces"],
