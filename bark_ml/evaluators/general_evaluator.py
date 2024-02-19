@@ -13,7 +13,8 @@ from bark.runtime.commons.parameters import ParameterServer
 from bark.core.models.dynamic import StateDefinition
 from bark.core.geometry import Point2d, Within, Distance
 from bark.core.world.evaluation.ltl import *
-from bark.core.world.evaluation.stl import *
+from bark_ml.evaluators.stl.safe_distance_label_function import *
+from bark_ml.evaluators.stl.evaluator_stl import *
 
 class Functor:
   def __init__(self, params):
@@ -457,7 +458,7 @@ class TrafficRuleSTLFunctor(Functor):
     elif isinstance(traffic_rule_eval_result, float):
       # print("WARNING: # of violations are NOT considered")
       self.traffic_rule_robustness = traffic_rule_eval_result
-
+    # TODO: Burdaki penalty mantigini güncellemek gerekli.
     penalty = -self.traffic_rule_robustness
     return False, self.WeightedReward(penalty), {}
   
