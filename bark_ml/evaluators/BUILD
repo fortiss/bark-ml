@@ -1,6 +1,3 @@
-
-
-
 py_library(
     name = "evaluators",
     srcs = ["__init__.py",
@@ -9,8 +6,7 @@ py_library(
     data = ["@bark_project//bark/python_wrapper:core.so"],
     imports = ["../external/bark_project/bark/python_wrapper/"],
     deps = ["@bark_project//bark/runtime:runtime",
-            "//bark_ml/evaluators/stl:evaluator_stl"
-    ],
+            "//bark_ml/evaluators/stl:evaluator_stl"],
     visibility = ["//visibility:public"],
 )
 

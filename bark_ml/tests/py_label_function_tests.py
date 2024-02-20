@@ -19,7 +19,7 @@ from bark_ml.environments.single_agent_runtime import SingleAgentRuntime
 from bark_ml.evaluators.evaluator_configs import GoalReached,RewardShapingEvaluator,EvaluatorConfigurator
 from bark_ml.evaluators.general_evaluator import GeneralEvaluator
 from bark_ml.evaluators.stl.evaluator_stl import EvaluatorSTL
-from bark_ml.evaluators.stl.label_functions.safe_distance_label_function import SafeDistanceQuantizedLabelFunction
+from bark_ml.evaluators.stl.safe_distance_label_function import SafeDistanceQuantizedLabelFunction
 from bark.core.world import make_test_world
 from bark.core.world.goal_definition import GoalDefinitionPolygon
 

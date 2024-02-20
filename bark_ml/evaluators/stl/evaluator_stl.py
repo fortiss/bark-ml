@@ -1,29 +1,43 @@
 from bark.core.world.evaluation.ltl import EvaluatorLTL
-from bark_ml.evaluators.stl.label_functions.base_label_function import BaseQuantizedLabelFunction
+from bark_ml.evaluators.stl.base_label_function import BaseQuantizedLabelFunction
 
-class EvaluatorSTL(EvaluatorLTL):    
-    def __init__(self, agent_id: int, ltl_formula_str: str, label_functions):
-        super().__init__(agent_id, ltl_formula_str, label_functions)
+class EvaluatorSTL(EvaluatorLTL):
+    def __init__(self, agent_id: int, ltl_formula: str, 
+                 label_functions, eval_return_without_robustness: bool = True):
+        super().__init__(agent_id, ltl_formula, label_functions)
         self.robustness = float('inf')
+        self.label_functions_stl = label_functions
+        self.eval_return_without_robustness = eval_return_without_robustness
 
-    def Evaluate(self, observed_world):        
-        eval_return = super().Evaluate(observed_world)
-        # print(f"Evaluate return: {eval_return}")
-        # print(f"Evaluate safety_violations: {super().safety_violations}")
-        # TODO: Should we remove the # of safety violations? We should subtract the robustness, shouldn't we?
-        eval_return = eval_return - self.compute_robustness()        
-        # print(f"Evaluate return updated: {eval_return}")
-        return eval_return
-    
-    def compute_robustness(self): 
+    def GetRuleViolationPenalty(self):
+        robutness_val = self.ComputeRobustness()
+        # print(f"Robustness in GetRuleViolationPenalty={robutness_val}")
+        penalty = super().GetRuleViolationPenalty() - robutness_val
+        return penalty
+
+    def ComputeRobustness(self):
         self.robustness = float('inf')
-               
         for le in self.label_functions:
-            if isinstance(le, BaseQuantizedLabelFunction):                
-                self.robustness = min(self.robustness, le.get_current_robustness())                                
-
+            try:
+                self.robustness = min(self.robustness, le.GetCurrentRobustness())
+            except AttributeError as e:
+                print(f"AttributeError: {e}")
+                
         if self.robustness == float('inf') or self.robustness == float('-inf'):
            self.robustness = 0.0
-           
-        # print(f'Robustness in EvaluatorSTL: {self.robustness}')
         return self.robustness
+    
+    def Evaluate(self, observed_world):
+        ltl_result = super().Evaluate(observed_world)
+        double_value = float('inf')
+        if isinstance(ltl_result, float):
+            double_value = ltl_result
+        else:
+            print("EvaluatorLTL return in STL DOES NOT hold a double value.")
+
+        robutness_val = self.ComputeRobustness()    
+        if self.eval_return_without_robustness:
+            return ltl_result
+        else:            
+            stl_result = str(double_value) + ";" + str(robutness_val)
+            return stl_result

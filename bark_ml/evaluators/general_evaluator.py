@@ -4,6 +4,7 @@
 # This software is released under the MIT License.
 # https://opensource.org/licenses/MIT
 import numpy as np
+import types
 
 from bark.core.world.evaluation import \
   EvaluatorGoalReached, EvaluatorCollisionEgoAgent, \
@@ -12,7 +13,8 @@ from bark.runtime.commons.parameters import ParameterServer
 from bark.core.models.dynamic import StateDefinition
 from bark.core.geometry import Point2d, Within, Distance
 from bark.core.world.evaluation.ltl import *
-
+from bark_ml.evaluators.stl.safe_distance_label_function import *
+# from bark_ml.evaluators.stl.evaluator_stl import *
 
 class Functor:
   def __init__(self, params):
@@ -245,7 +247,7 @@ class PotentialGoalPolyFunctor(PotentialBasedFunctor):
       cur_pot = self.DistancePotential(
         cur_dist, self._params["MaxDist", "", 100.],
         self._params["DistExponent", "", 0.2])
-      print("!!!!!!!!!!!!!current potential is ", 0.99*cur_pot - prev_pot)
+      # print("!!!!!!!!!!!!!current potential is ", 0.99*cur_pot - prev_pot)
       return False, self.WeightedReward(self._params["Gamma", "", 0.99]*cur_pot - prev_pot), {}
     return False, 0, {}
 
@@ -413,7 +415,7 @@ class TrafficRuleLTLFunctor(Functor):
     # print("current traffic rule violations:", self.traffic_rule_violations)
     if self.traffic_rule_violations > max_vio_num:
       return True, 0, {}
-    return False, self.WeightedReward(current_traffic_rule_violations/max_vio_num), {}
+    return False, self.WeightedReward(current_traffic_rule_violations / max_vio_num), {}
   def Reset(self):
     # self.traffic_rule_violation_pre = 0
     self.traffic_rule_violation_post = 0
@@ -422,6 +424,49 @@ class TrafficRuleLTLFunctor(Functor):
 # TODO: extract t -> (x, y), t -> v && min/max acc, delta, v, theta
 # TODO: MIN/MAX functor for defined state value
 # TODO: Deviation functor for state-difference (desired vel. and x,y)
+
+class TrafficRuleSTLFunctor(Functor):
+  def __init__(self, params):    
+    self._params = params
+    self.traffic_rule_violation_pre = 0
+    self.traffic_rule_violation_post = 0
+    self.traffic_rule_violations = 0
+    self.traffic_rule_robustness = 0.0
+    super().__init__(params=self._params)
+
+
+  def __call__(self, observed_world, action, eval_results):
+    traffic_rule_eval_result = eval_results[self._params["RuleName"]]
+    # print("Eval result in functor: ", traffic_rule_eval_result)
+
+    if isinstance(traffic_rule_eval_result, str):
+      results = traffic_rule_eval_result.split(";")    
+      self.traffic_rule_violation_post = float(results[0])
+      self.traffic_rule_robustness = float(results[1])
+
+      max_vio_num = self._params["ViolationTolerance", "", 15]
+      if self.traffic_rule_violation_post < self.traffic_rule_violation_pre:
+          self.traffic_rule_violation_pre = self.traffic_rule_violation_post
+
+      current_traffic_rule_violations = self.traffic_rule_violation_post - self.traffic_rule_violation_pre
+      self.traffic_rule_violations += current_traffic_rule_violations
+      self.traffic_rule_violation_pre = self.traffic_rule_violation_post
+      # print("current traffic rule violations:", self.traffic_rule_violations)
+
+      if self.traffic_rule_violations > max_vio_num:
+        return True, 0, {}
+    elif isinstance(traffic_rule_eval_result, float):
+      # print("WARNING: # of violations are NOT considered")
+      self.traffic_rule_robustness = traffic_rule_eval_result
+    # TODO: Burdaki penalty mantigini güncellemek gerekli.
+    penalty = -self.traffic_rule_robustness
+    return False, self.WeightedReward(penalty), {}
+  
+  def Reset(self):
+    # self.traffic_rule_violation_pre = 0
+    self.traffic_rule_violation_post = 0
+    self.traffic_rule_violations = 0
+    super().Reset()
 
 class GeneralEvaluator:
   """Evaluator using Functors"""
@@ -455,6 +500,7 @@ class GeneralEvaluator:
     }
 
   def Evaluate(self, observed_world, action):
+
     """Returns information about the current world state."""
     eval_results = observed_world.Evaluate()
     reward = 0.
@@ -462,6 +508,7 @@ class GeneralEvaluator:
 
     for _, eval_fn in self._bark_ml_eval_fns.items():
       t, r, i = eval_fn(observed_world, action, eval_results)
+        
       eval_results = {**eval_results, **i} # merge info
       reward += r # accumulate reward
       if t: # if any of the t are True -> terminal
@@ -473,7 +520,13 @@ class GeneralEvaluator:
     world.ClearEvaluators()
     for eval_name, eval_fn in self._bark_eval_fns.items():
       #TODO: check if reset evaluatorLTL is needed
-      world.AddEvaluator(eval_name, eval_fn())
+      # print("world.AddEvaluator(eval_name): ", eval_name)
+      # print("world.AddEvaluator(eval_fn()): ", eval_fn())
+      if isinstance(eval_fn, types.LambdaType):
+        world.AddEvaluator(eval_name, eval_fn())      
+      else:
+        # print(f"Reset method - Eval name: {eval_name}, eval_fn: {eval_fn}")
+        world.AddEvaluator(eval_name, eval_fn)
     for _, eval_func in self._bark_ml_eval_fns.items():
       eval_func.Reset()
     return world
