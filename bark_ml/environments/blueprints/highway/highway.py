@@ -34,11 +34,17 @@ class HighwayLaneCorridorConfig(LaneCorridorConfig):
                **kwargs):
     super(HighwayLaneCorridorConfig, self).__init__(params, **kwargs)
 
+  # def goal(self, world):
+  #   goal_polygon = Polygon2d(
+  #     [-1000, -1000, -1000],
+  #     [Point2d(-1, -1), Point2d(-1, 1), Point2d(1, 1), Point2d(1, -1)])
+  #   return GoalDefinitionPolygon(goal_polygon)
+    
   def goal(self, world):
-    goal_polygon = Polygon2d(
-      [-1000, -1000, -1000],
-      [Point2d(-1, -1), Point2d(-1, 1), Point2d(1, 1), Point2d(1, -1)])
-    return GoalDefinitionPolygon(goal_polygon)
+        lane_corr = self._road_corridor.lane_corridors[0]
+        goal_polygon = Polygon2d([0, 0, 0], [Point2d(-20, -2.5), Point2d(-20, 2.5), Point2d(5, 2.5), Point2d(5, -2.5)])
+        goal_polygon = goal_polygon.Translate(Point2d(lane_corr.center_line.ToArray()[-1, 0], lane_corr.center_line.ToArray()[-1, 1]))
+        return GoalDefinitionPolygon(goal_polygon)
 
 
 class HighwayBlueprint(Blueprint):
@@ -64,22 +70,28 @@ class HighwayBlueprint(Blueprint):
       ds_max = 35.
     params["World"]["remove_agents_out_of_map"] = False
 
-    ego_lane_id = 2
+    ego_lane_id = 1
     lane_configs = []
-    for i in range(1, 4):
+    for i in range(-1, 2):
       is_controlled = True if (ego_lane_id == i) else None
       s_min = 0
-      s_max = 250
-      if is_controlled == True:
-        s_min = 40.
-        s_max = 80.
+      s_max = 100
       local_params = params.clone()
       local_params["BehaviorIDMClassic"]["DesiredVelocity"] = np.random.uniform(12, 17)
+      min_vel=12.5,
+      max_vel=17.5,
+      if is_controlled == True:
+        s_min = 40.
+        s_max = 60.
+        local_params["BehaviorIDMClassic"]["DesiredVelocity"] = np.random.uniform(5, 8)
+        min_vel=5.0
+        max_vel=8.0
+      
       lane_conf = HighwayLaneCorridorConfig(params=local_params,
                                             road_ids=[16],
                                             lane_corridor_id=i,
-                                            min_vel=12.5,
-                                            max_vel=17.5,
+                                            min_vel=min_vel,
+                                            max_vel=max_vel,
                                             ds_min=ds_min,
                                             ds_max=ds_max,
                                             s_min=s_min,
@@ -90,7 +102,7 @@ class HighwayBlueprint(Blueprint):
     scenario_generation = \
       ConfigWithEase(
         num_scenarios=num_scenarios,
-        map_file_name=os.path.join(os.path.dirname(__file__), "../../../environments/blueprints/highway/round_highway.xodr"),  # pylint: disable=unused-import
+        map_file_name=os.path.join(os.path.dirname(__file__), "../../../environments/blueprints/highway/city_highway_straight.xodr"),  # pylint: disable=unused-import
         random_seed=random_seed,
         params=params,
         lane_corridor_configs=lane_configs)
