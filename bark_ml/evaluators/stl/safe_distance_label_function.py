@@ -1,9 +1,13 @@
 import sys
 import logging
-import rtamt
+
+try:
+    import rtamt
+    from rtamt.spec.stl.discrete_time.specification import StlDiscreteTimeSpecification
+except ImportError:
+    print("!!!!!!!!!!!!!!!!RTAMT MODULE NOT FOUND or CANNOT BE IMPORTED!!!!!!!!!!!!!!!!")
 
 from bark.core.world.evaluation.ltl import SafeDistanceLabelFunction
-from rtamt.spec.stl.discrete_time.specification import StlDiscreteTimeSpecification
 from bark_ml.evaluators.stl.base_label_function import BaseQuantizedLabelFunction
 
 class SafeDistanceQuantizedLabelFunction(SafeDistanceLabelFunction, BaseQuantizedLabelFunction):      
