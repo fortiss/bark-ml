@@ -140,7 +140,7 @@ class SmoothnessFunctor(Functor):
 
 class PotentialBasedFunctor(Functor):
   def __init__(self, params):
-    self._params = params["PotentialBasedFunctor"]
+    # self._params = params["PotentialBasedFunctor"]
     super().__init__(params=params)
 
   def GetPrevAndCurState(self, observed_world):
