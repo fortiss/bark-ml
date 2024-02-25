@@ -24,12 +24,16 @@ class SingleAgentRuntime(Runtime):
                evaluator=None,
                step_time=None,
                viewer=None,
+               art_part=None,
+               num_scenarios=None,
                scenario_generator=None,
+               odd_scenario_generator=None,
                render=False):
 
     if blueprint is not None:
       self._scenario_generator = blueprint._scenario_generation
       self._viewer = blueprint._viewer
+      self._odd_scenario_generator = odd_scenario_generator
       self._ml_behavior = blueprint._ml_behavior
       self._step_time = blueprint._dt
       self._evaluator = blueprint._evaluator
@@ -43,10 +47,46 @@ class SingleAgentRuntime(Runtime):
     self._observer = observer or self._observer
     self._evaluator = evaluator or self._evaluator
     self._world = None
+    self._scenario_idx = -1
+    self._art_part = 10
+    # 80 percent of scenarios are artificial
+    if art_part:
+      self._art_part = int(art_part*10)
+    self._num_scenarios = num_scenarios or 1
 
   def reset(self, scenario=None):
     """Resets the runtime and its objects."""
-    super().reset(scenario=scenario)
+    if scenario:
+      self._scenario = scenario
+    else:
+      # pure odd scenarios
+      if (self._scenario_generator is None) and (self._odd_scenario_generator is not None):
+        self._scenario, self._scenario_idx = \
+          self._odd_scenario_generator.get_next_scenario()
+      # pure artificial scenario
+      if (self._odd_scenario_generator is None) and (self._scenario_generator is not None):
+        self._scenario, self._scenario_idx = \
+          self._scenario_generator.get_next_scenario()
+      # mixed odd and artificial scenario
+      if (self._odd_scenario_generator is not None) and (self._scenario_generator is not None):
+        cur_scen_idx = self._scenario_idx+1
+        if cur_scen_idx >= self._num_scenarios:
+          cur_scen_idx=0
+        if cur_scen_idx % 10 < self._art_part:
+          self._scenario, _ = \
+            self._scenario_generator.get_next_scenario()
+        else:
+          self._scenario, _ = \
+            self._odd_scenario_generator.get_next_scenario()
+
+        self._scenario_idx = cur_scen_idx
+
+    self._world = self._scenario.GetWorldState()
+    self._reset_has_been_called = True
+    if self._viewer:
+      self._viewer.Reset()
+    self._world_history = []
+    
     assert len(self._scenario._eval_agent_ids) == 1, \
       "This runtime only supports a single agent!"
     eval_id = self._scenario._eval_agent_ids[0]

@@ -64,14 +64,19 @@ class Experiment:
 
   def InitScenarioGeneration(self):
     module_name = self._exp_params["ScenarioGeneration"]["ModuleName", "specify extra scenario generation", "FromBlueprint"]
+    art_scen_part = self._exp_params["ArtificialScenPartion","specify the portion of artificial scennarios", None]
     if module_name == "FromBlueprint":
       return None
+    if (art_scen_part is None) and (self._exp_params["ScenarioGeneration","", None] is None):
+      return None
     filename = self._exp_params["ScenarioGeneration"]["ParamFile"]
-    num_scenarios = self._exp_params["ScenarioGeneration"]["NumScenarios"]
+    num_scenarios = self._exp_params["NumScenarios","the number of scenarios of experiment",None] or self._exp_params["ScenarioGeneration"]["NumScenarios"]
     if self._mode == "evaluate":
       num_scenarios = self._exp_params["NumEvaluationEpisodes"]
     if self._mode == "visualize":
       num_scenarios = self._exp_params["NumVisualizationEpisodes"]
+    if art_scen_part is not None:
+      num_scenarios = int(num_scenarios*(1-art_scen_part))
     dict_={}
     dict_["num_scenarios"] = num_scenarios
     dict_["params"] = ParameterServer(num_scenarios=num_scenarios, filename=filename)
@@ -87,15 +92,22 @@ class Experiment:
     module_name = self._exp_params["Blueprint"]["ModuleName"]
     items = self._exp_params["Blueprint"]["Config"].ConvertToDict()
     items["params"] = self._params
+    if self._exp_params["NumScenarios","",None] is not None:
+      items["num_scenarios"] = self._exp_params["NumScenarios"]
     if self._mode == "evaluate":
       items["num_scenarios"] = self._exp_params["NumEvaluationEpisodes"]
     if self._mode == "visualize":
       items["num_scenarios"] = self._exp_params["NumVisualizationEpisodes"]
+    art_scen_part = self._exp_params["ArtificialScenPartion","specify the portion of artificial scennarios", None]
+    if art_scen_part is not None:
+      items["num_scenarios"] = int(items["num_scenarios"] * art_scen_part)
+
     blueprint = LoadModule(module_name, items)
     # NOTE: this should be configurable also
     blueprint._ml_behavior = BehaviorContinuousML(params=self._params)
-    if self._scenario_generation:
+    if (self._scenario_generation is not None) and (art_scen_part is None):
       blueprint._scenario_generation = self._scenario_generation
+      self._scenario_generation = None
     return blueprint
 
   def InitObserver(self):
@@ -150,6 +162,9 @@ class Experiment:
     items["evaluator"] = self._evaluator
     items["observer"] = self._observer
     items["blueprint"] = self._blueprint
+    items["odd_scenario_generator"] = self._scenario_generation
+    items["art_part"] = self._exp_params["ArtificialScenPartion"]
+    items["num_scenarios"] = self._exp_params["NumScenarios"]
     return LoadModule(module_name, items)
 
   def InitRunner(self):
