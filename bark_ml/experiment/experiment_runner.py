@@ -8,6 +8,9 @@ import numpy as np
 from bark.runtime.commons.parameters import ParameterServer
 from bark_ml.experiment.experiment import Experiment
 
+import pathlib
+from pathlib import Path
+import json
 
 class ExperimentRunner:
   """The ExperimentRunner-Class provides an easy-to-use interface to
@@ -54,6 +57,10 @@ class ExperimentRunner:
       self.PrintExperiment()
     if mode == "save":
       self.SaveExperiment(FLAGS.save_path)
+    if mode == "collisions":
+      self.Collisions()
+    if mode == "validate":
+      self.Validate()
 
   def BuildExperiment(self, json_file, mode):
     return Experiment(json_file, self._params, mode)
@@ -120,7 +127,6 @@ class ExperimentRunner:
     # ...
     return evaluation_results
 
-
   def Visualize(self):
     self.CompareHashes()
     num_episodes = \
@@ -134,3 +140,58 @@ class ExperimentRunner:
 
   def SaveExperiment(self, file_path):
     self._params.Save(file_path)
+
+  def dump(self, data, file=(str(pathlib.Path.home()) + '/dump.json')):
+    with open(file, 'w') as file:
+        json.dump(data, file)
+
+  def read(self, file=(str(pathlib.Path.home()) + '/dump.json')):
+    with open(file, 'r') as file:
+        return json.load(file)
+    
+  def Collisions(self):
+    self.CompareHashes()
+    num_episodes = \
+      self._params["Experiment"]["NumEvaluationEpisodes"]
+    collisions = self._experiment.runner.Run(
+      num_episodes=num_episodes, render=False, trace_colliding_ids=True)
+    if collisions == None:
+        self.dump(data = None)
+        print("\n")
+        print("No traffic rule violations or collisions happened!\n")
+        return collisions
+    elif self.collisionIDs == None:
+        self.collisionIDs = collisions
+        self.dump(data = self.collisionIDs)
+        print("\n")
+        print("Traffic rule violations or collisions happened in these scenarios:\n")
+        print(collisions)
+        print("\n")
+        return collisions
+    self.collisionIDs.append(collisions)
+    print("\n")
+    print("Traffic rule violations happened in these scenarios:\n")
+    print(collisions)
+    print("\n")
+    self.dump(data = self.collisionIDs)
+    return collisions
+    
+  def Validate(self):
+    ids = self.read()
+    print(ids)
+    self.CompareHashes()
+    noCollision = []
+    if ids is not None and len(ids) > 0:
+      for i in ids:
+        print("\nValidation episode ")
+        print(i)
+        print("\n")
+        if not self._experiment.runner.RunEpisode(render=False, num_episode=i, trace_colliding_ids=True):
+            noCollision.append(i)
+      print("\n")
+      print("No traffic rule violations or collisions happened in these scenarios:\n")
+      print(noCollision)
+      print("\n")
+    else:
+      print("dump.json is empty!\n")
+    return noCollision

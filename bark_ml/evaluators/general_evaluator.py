@@ -5,6 +5,7 @@
 # https://opensource.org/licenses/MIT
 import numpy as np
 import types
+import sys
 
 from bark.core.world.evaluation import \
   EvaluatorGoalReached, EvaluatorCollisionEgoAgent, \
@@ -14,7 +15,10 @@ from bark.core.models.dynamic import StateDefinition
 from bark.core.geometry import Point2d, Within, Distance
 from bark.core.world.evaluation.ltl import *
 from bark_ml.evaluators.stl.safe_distance_label_function import *
-# from bark_ml.evaluators.stl.evaluator_stl import *
+try:
+  from bark_ml.evaluators.stl.evaluator_stl import *
+except ImportError:
+    print("!!!!!!!!!!!!!!!!from bark_ml.evaluators.stl.evaluator_stl NOT FOUND or CANNOT BE IMPORTED!!!!!!!!!!!!!!!!")
 
 class Functor:
   def __init__(self, params):
@@ -456,10 +460,12 @@ class TrafficRuleSTLFunctor(Functor):
       if self.traffic_rule_violations > max_vio_num:
         return True, 0, {}
     elif isinstance(traffic_rule_eval_result, float):
-      # print("WARNING: # of violations are NOT considered")
-      self.traffic_rule_robustness = traffic_rule_eval_result
-    # TODO: Burdaki penalty mantigini güncellemek gerekli.
-    penalty = -self.traffic_rule_robustness
+      print("ERROR: EvaluatorSTL just returning the # of violations, and NOT the robustness value.")
+      sys.exit()
+      # self.traffic_rule_robustness = traffic_rule_eval_result
+          
+    penalty = current_traffic_rule_violations / max_vio_num #-self.traffic_rule_robustness
+    # print("Penalty in STL:", penalty)
     return False, self.WeightedReward(penalty), {}
   
   def Reset(self):

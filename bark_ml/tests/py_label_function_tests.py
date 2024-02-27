@@ -34,7 +34,7 @@ class PyLabelFunctionTests(unittest.TestCase):
     a_o = -8.0
 
     # Create a SafeDistanceQuantizedLabelFunction instance
-    evaluator = SafeDistanceQuantizedLabelFunction("safe_distance", False, delta, delta, a_e, a_o, True, 4, False, 1.0, math.pi, False)
+    evaluator = SafeDistanceQuantizedLabelFunction("safe_distance", False, delta, delta, a_e, a_o, True, 4, False, 1.0, math.pi, False, 200, False)
 
     stop_dist = v_0 * delta + (v_0 ** 2) / (2.0 * -a_e)
 
@@ -75,7 +75,7 @@ class PyLabelFunctionTests(unittest.TestCase):
     # Case 4
     delta = 0.5
     dist = 4.5
-    evaluator = SafeDistanceQuantizedLabelFunction("safe_distance", False, delta, delta, a_e, a_o, True, 4, False, 1.0, math.pi, False)
+    evaluator = SafeDistanceQuantizedLabelFunction("safe_distance", False, delta, delta, a_e, a_o, True, 4, False, 1.0, math.pi, False, 200, False)
     world4 = make_test_world(1, dist, v_0, dv, GoalDefinitionPolygon(), 0.0, 0.0, 0.0, 0.0)
     observed_world4 = world4.Observe([ego_id])[0]
     labels4 = evaluator.Evaluate(observed_world4)
@@ -99,7 +99,7 @@ class PyLabelFunctionTests(unittest.TestCase):
       a_e = -8.0
       a_o = -8.0
 
-      evaluator = SafeDistanceQuantizedLabelFunction("safe_distance", False, delta, delta, a_e, a_o, True, 4, False, 5.0, math.pi, True)
+      evaluator = SafeDistanceQuantizedLabelFunction("safe_distance", False, delta, delta, a_e, a_o, True, 4, False, 5.0, math.pi, True, 200, False)
 
       # Longitudinal safe dist not violated -> lateral on same lane -> no violation
       stop_dist = v_0 * delta + v_0 * v_0 / (2.0 * -a_e)
@@ -176,7 +176,7 @@ class PyLabelFunctionTests(unittest.TestCase):
       a_o = -8.0
 
       # Create a SafeDistanceQuantizedLabelFunction instance
-      sdf = SafeDistanceQuantizedLabelFunction("safe_distance", False, delta, delta, a_e, a_o, True, 4, False, 1.0, math.pi, False)
+      sdf = SafeDistanceQuantizedLabelFunction("safe_distance", False, delta, delta, a_e, a_o, True, 4, False, 1.0, math.pi, False, 200, False)
 
       stop_dist = v_0 * delta + (v_0 ** 2) / (2.0 * -a_e)
 
@@ -223,7 +223,7 @@ class PyLabelFunctionTests(unittest.TestCase):
       # Case 4
       delta = 0.5
       dist = 4.5
-      sdf = SafeDistanceQuantizedLabelFunction("safe_distance", False, delta, delta, a_e, a_o, True, 4, False, 1.0, math.pi, False)
+      sdf = SafeDistanceQuantizedLabelFunction("safe_distance", False, delta, delta, a_e, a_o, True, 4, False, 1.0, math.pi, False, 200, False)
       world4 = make_test_world(1, dist, v_0, dv, GoalDefinitionPolygon(), 0.0, 0.0, 0.0, 0.0)
       observed_world4 = world4.Observe([ego_id])[0]
       evaluator_stl = EvaluatorSTL(1, "G safe_distance", [sdf])
@@ -252,7 +252,7 @@ class PyLabelFunctionTests(unittest.TestCase):
       a_e = -8.0
       a_o = -8.0
 
-      sdf = SafeDistanceQuantizedLabelFunction("safe_distance", False, delta, delta, a_e, a_o, True, 4, False, 5.0, math.pi, True)
+      sdf = SafeDistanceQuantizedLabelFunction("safe_distance", False, delta, delta, a_e, a_o, True, 4, False, 5.0, math.pi, True, 200, False)
 
       # Longitudinal safe dist not violated -> lateral on same lane -> no violation
       stop_dist = v_0 * delta + v_0 * v_0 / (2.0 * -a_e)

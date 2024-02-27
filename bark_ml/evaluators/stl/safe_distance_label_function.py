@@ -14,7 +14,7 @@ class SafeDistanceQuantizedLabelFunction(SafeDistanceLabelFunction, BaseQuantize
     robustness_min = float('inf')  
     robustness_max = float('-inf')  
 
-    lon_value_range = (-200, 200)
+    lon_value_range = (-200, 200) # (-20, 150) # 
     lat_value_range = (-20, 20)
     feature_range = (-1, 1)
     
@@ -134,16 +134,20 @@ class SafeDistanceQuantizedLabelFunction(SafeDistanceLabelFunction, BaseQuantize
 
         if self.robustness > SafeDistanceQuantizedLabelFunction.robustness_max:
             SafeDistanceQuantizedLabelFunction.robustness_max = self.robustness
+            # logging.info(f"Current MAX robustness for SD={self.robustness_max}")
+            # logging.info(f"Current MAX robustness self.robustness_lat={self.robustness_lat}")
+            # logging.info(f"Current MAX robustness self.robustness_lon={self.robustness_lon}")
 
         if self.robustness < SafeDistanceQuantizedLabelFunction.robustness_min:
             SafeDistanceQuantizedLabelFunction.robustness_min = self.robustness
-        
-        # logging.info(f"Current MIN robustness for SD={self.robustness_min}")
-        # logging.info(f"Current MAX robustness for SD={self.robustness_max}")
+            # logging.info(f"Current MIN robustness for SD={self.robustness_min}")
+            # logging.info(f"Current MIN robustness self.robustness_lat={self.robustness_lat}")
+            # logging.info(f"Current MIN robustness self.robustness_lon={self.robustness_lon}")
 
     def NormalizeRobustness(self, robustness, feature_range, value_range):
         if self.robustness_normalized: 
             # logging.info(f"Robustness BEFORE Normalization={robustness} and value_range={value_range}")
+            
             min_value, max_value = value_range
             min_range, max_range = feature_range
         

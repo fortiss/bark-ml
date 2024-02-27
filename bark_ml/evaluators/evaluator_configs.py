@@ -9,7 +9,10 @@ from bark.core.world.evaluation import \
 from bark.core.geometry import Point2d
 from bark_ml.evaluators.general_evaluator import *
 from bark_ml.evaluators.stl.safe_distance_label_function import *
-# from bark_ml.evaluators.stl.evaluator_stl import *
+try:
+  from bark_ml.evaluators.stl.evaluator_stl import *
+except ImportError:
+    print("!!!!!!!!!!!!!!!!from bark_ml.evaluators.stl.evaluator_stl NOT FOUND or CANNOT BE IMPORTED!!!!!!!!!!!!!!!!")
 
 class GoalReached(GeneralEvaluator):
   def __init__(self, params):
@@ -211,9 +214,9 @@ class EvaluatorConfigurator(GeneralEvaluator):
       # print("labels_list:",labels_list)
 
       try:
-        eval_return_robustness_only = rule_config["RuleConfig"]["params"]["eval_return_robustness_only"]        
+        eval_return_without_robustness = rule_config["RuleConfig"]["params"]["eval_return_without_robustness"]        
       except KeyError:
-        eval_return_robustness_only = True
+        eval_return_without_robustness = False
 
       tmp_tl_settings = {}
       # Check if the key exists in tmp_tl_settings; if not, create a nested dictionary
@@ -225,7 +228,7 @@ class EvaluatorConfigurator(GeneralEvaluator):
       tmp_tl_settings[rule_config["RuleName"]]["label_functions"] = labels_list
 
       if quantized:
-        tmp_tl_settings[rule_config["RuleName"]]["eval_return_robustness_only"] = eval_return_robustness_only
+        tmp_tl_settings[rule_config["RuleName"]]["eval_return_without_robustness"] = eval_return_without_robustness
 
       tmp_tl_eval = eval("{}(**tmp_tl_settings[rule_config['RuleName']])".format(rule_config["RuleConfig"]["type"]))
       # print("tmp_tl_eval:", tmp_tl_eval)
