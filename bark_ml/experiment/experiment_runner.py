@@ -30,6 +30,8 @@ class ExperimentRunner:
     self._logger = logging.getLogger()
     self._experiment_json = json_file
     self._use_best_ckpt_folder = False if not use_best_ckpt_folder else use_best_ckpt_folder
+    self.collisionIDs = None
+
     if params is not None:
       self._params = params
     else:
@@ -155,6 +157,7 @@ class ExperimentRunner:
       self._params["Experiment"]["NumEvaluationEpisodes"]
     collisions = self._experiment.runner.Run(
       num_episodes=num_episodes, render=False, trace_colliding_ids=True)
+
     if collisions == None:
         self.dump(data = None)
         print("\n")
@@ -186,7 +189,9 @@ class ExperimentRunner:
         print("\nValidation episode ")
         print(i)
         print("\n")
-        if not self._experiment.runner.RunEpisode(render=False, num_episode=i, trace_colliding_ids=True):
+        
+        episode_log = self._experiment.runner.RunEpisode(render=False, num_episode=i, trace_colliding_ids=True)        
+        if not self._experiment.runner.check_if_any(episode_log, "collision", True):
             noCollision.append(i)
       print("\n")
       print("No traffic rule violations or collisions happened in these scenarios:\n")

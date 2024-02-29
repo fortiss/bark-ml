@@ -34,12 +34,6 @@ def calculate_mean(episode_log, key):
     mean += log[key]
   return mean/len(episode_log)
 
-def check_if_any(episode_log, key, val):
-  for log in episode_log:
-    if log[key] == val:
-      return True
-  return False
-
 class TFARunner:
   """Used to train, evaluate and visualize a BARK-ML agent."""
 
@@ -117,7 +111,7 @@ class TFARunner:
       action = np.reshape(action, expected_shape)
     return action
 
-  def RunEpisode(self, render=True):
+  def RunEpisode(self, render=True, trace_colliding_ids=None, **kwargs):
     episode_log = []
     state = self._environment.reset()
     is_terminal = False
@@ -136,30 +130,45 @@ class TFARunner:
         "is_terminal": is_terminal, **info})
       if render:
         self._environment.render()
+
+      # is_failed = info["collision"] or info["drivable_area"]
+      if "traffic_rules_violations" in info:
+        is_failed = info["traffic_rules_violations"] > 0
+        # is_failed = is_failed or (info["traffic_rules_violations"] > 0)
+      else:
+        is_failed = info["collision"] or info["drivable_area"]
+
+      if is_terminal and is_failed and (trace_colliding_ids is not None):
+        self._colliding_scenario_ids.append(
+          self._environment._scenario_idx)
+      
+      # if is_terminal and info["goal_reached"]:
+      #   self._logger.info("The ego agent reached its goal.")
+
     episode_log.append({
         "state": state, "action" : None, "reward": reward,
         "is_terminal": is_terminal, **info})
     return episode_log
 
   def Run(
-    self, num_episodes=10, render=False, mode="not_training", **kwargs):
+    self, num_episodes=10, render=False, mode="not_training", trace_colliding_ids=None, **kwargs):
     episode_logs = {}
     collision, success, steps, reward = 0, 0, 0., 0.
     for i in range(0, num_episodes):
       if render:
         self._logger.info(f"Simulating episode {i}.")
 
-      episode_log = self.RunEpisode(render=render)
+      episode_log = self.RunEpisode(render=render, trace_colliding_ids=trace_colliding_ids, **kwargs)
       if mode == "evaluate":
         episode_logs[i] = episode_log
       steps += get_index(episode_log, "step_count", -1)
       reward += calculate_mean(episode_log, "reward")
-      collision += check_if_any(episode_log, "collision", True) or \
-        check_if_any(episode_log, "drivable_area", True)
+      collision += self.check_if_any(episode_log, "collision", True) or \
+        self.check_if_any(episode_log, "drivable_area", True)
       # rethink success: goal_reached without collision and expiring drivable_area
-      success += check_if_any(episode_log, "goal_reached", True) and \
-        check_if_any(episode_log, "collision", False) and \
-        check_if_any(episode_log, "drivable_area", False)
+      success += self.check_if_any(episode_log, "goal_reached", True) and \
+        self.check_if_any(episode_log, "collision", False) and \
+        self.check_if_any(episode_log, "drivable_area", False)
 
     mean_steps = steps / num_episodes
     mean_reward = reward / num_episodes
@@ -201,6 +210,14 @@ class TFARunner:
       #     if key not in ["state", "goal_reached", "step_count", "num_episode", "reward"]:
       #       tf.summary.scalar(f"auto_{key}", val, step=global_iteration)
 
+    if trace_colliding_ids:
+      return self._colliding_scenario_ids
+    
     if mode == "evaluate":
       return episode_logs
 
+  def check_if_any(self, episode_log, key, val):
+    for log in episode_log:
+      if log[key] == val:
+        return True
+    return False

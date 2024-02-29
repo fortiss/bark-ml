@@ -408,6 +408,8 @@ class TrafficRuleLTLFunctor(Functor):
     super().__init__(params=self._params)
 
   def __call__(self, observed_world, action, eval_results):
+    eval_results["traffic_rules_violations"] = 0
+    
     self.traffic_rule_violation_post = eval_results[self._params["RuleName"]]
     # print("Result from evaluatorLTL:", self.traffic_rule_violation_post)
     max_vio_num = self._params["ViolationTolerance","",15]
@@ -417,9 +419,11 @@ class TrafficRuleLTLFunctor(Functor):
     self.traffic_rule_violations = self.traffic_rule_violations + current_traffic_rule_violations
     self.traffic_rule_violation_pre = self.traffic_rule_violation_post
     # print("current traffic rule violations:", self.traffic_rule_violations)
+
+    eval_results["traffic_rules_violations"] = current_traffic_rule_violations
     if self.traffic_rule_violations > max_vio_num:
-      return True, 0, {}
-    return False, self.WeightedReward(current_traffic_rule_violations / max_vio_num), {}
+      return True, 0, eval_results
+    return False, self.WeightedReward(current_traffic_rule_violations / max_vio_num), eval_results
   def Reset(self):
     # self.traffic_rule_violation_pre = 0
     self.traffic_rule_violation_post = 0
@@ -442,6 +446,7 @@ class TrafficRuleSTLFunctor(Functor):
   def __call__(self, observed_world, action, eval_results):
     traffic_rule_eval_result = eval_results[self._params["RuleName"]]
     # print("Eval result in functor: ", traffic_rule_eval_result)
+    eval_results["traffic_rules_violations"] = 0
 
     if isinstance(traffic_rule_eval_result, str):
       results = traffic_rule_eval_result.split(";")    
@@ -456,9 +461,10 @@ class TrafficRuleSTLFunctor(Functor):
       self.traffic_rule_violations += current_traffic_rule_violations
       self.traffic_rule_violation_pre = self.traffic_rule_violation_post
       # print("current traffic rule violations:", self.traffic_rule_violations)
-
+      
+      eval_results["traffic_rules_violations"] = current_traffic_rule_violations
       if self.traffic_rule_violations > max_vio_num:
-        return True, 0, {}
+        return True, 0, eval_results
     elif isinstance(traffic_rule_eval_result, float):
       print("ERROR: EvaluatorSTL just returning the # of violations, and NOT the robustness value.")
       sys.exit()
@@ -466,7 +472,8 @@ class TrafficRuleSTLFunctor(Functor):
           
     penalty = current_traffic_rule_violations / max_vio_num #-self.traffic_rule_robustness
     # print("Penalty in STL:", penalty)
-    return False, self.WeightedReward(penalty), {}
+    eval_results["traffic_rules_violations"] = current_traffic_rule_violations
+    return False, self.WeightedReward(penalty), eval_results
   
   def Reset(self):
     # self.traffic_rule_violation_pre = 0
