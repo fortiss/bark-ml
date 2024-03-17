@@ -15,7 +15,7 @@ from bark.runtime.scenario.scenario_generation.config_with_ease import \
 from bark.runtime.commons.xodr_parser import XodrParser
 from bark.core.world.opendrive import *
 from bark.core.geometry import Line2d, GetPointAtS, GetTangentAngleAtS, Polygon2d, Point2d
-from bark.core.models.behavior import BehaviorDynamicModel, BehaviorMacroActionsFromParamServer
+from bark.core.models.behavior import BehaviorDynamicModel, BehaviorMacroActionsFromParamServer, BehaviorIDMClassic
 from bark.core.world.map import MapInterface
 from bark.core.world.opendrive import XodrDrivingDirection
 from bark.core.world.goal_definition import GoalDefinitionStateLimitsFrenet, GoalDefinitionPolygon
@@ -45,7 +45,7 @@ class SingleLaneLaneCorridorConfig(LaneCorridorConfig):
                goalConfigs= None,
                **kwargs):
     super(SingleLaneLaneCorridorConfig, self).__init__(
-      params, **dict(kwargs, min_vel=0., max_vel=0.2))
+      params, **kwargs)
     self._samplingRange = samplingRange
     self._lateralOffset = lateralOffset
     self._longitudinalOffset = longitudinalOffset
@@ -53,6 +53,8 @@ class SingleLaneLaneCorridorConfig(LaneCorridorConfig):
     self._distanceRange = distanceRange
     self._hasVehicles = True
     self._goalConfigs = goalConfigs
+    self._min_vel = kwargs.pop("min_vel", 8.) # min velocity
+    self._max_vel = kwargs.pop("max_vel", 10.) # max velocity
 
   def goal(self, world):
     world.map.GetRoadCorridor(
@@ -133,16 +135,21 @@ class SingleLaneLaneCorridorConfig(LaneCorridorConfig):
     """
     if not self._hasVehicles:
       return None
-
     if self._controlled_ids is not None:
+      # print(f"controlled ids: {self._controlled_ids}")
       pose = self.position(world)
+      # print(f"pose: {pose}")
       if pose is None:
         return None
       velocity = self.velocity()
       return np.array([0, pose[0], pose[1], pose[2], velocity, 0.])
     else:
-      return super().state(world)
-
+      tmp_state = super().state(world)
+      if tmp_state is None:
+        return None
+      tmp_vel = self.velocity(tmp_state)
+      tmp_state[4] = tmp_vel
+      return tmp_state
   def reset(self):
     """Resets the LaneCorridorConfig
     """
@@ -151,8 +158,108 @@ class SingleLaneLaneCorridorConfig(LaneCorridorConfig):
       self._hasVehicles = hasVehicles
     self._current_s = None
 
-  def velocity(self):
+  def velocity(self, state=None):
+
+    if state is None:
+      return 0.0
+    lane_corr = self._road_corridor.lane_corridors[self._lane_corridor_id]
+    centerline = lane_corr.center_line
+
+    xy_point =  GetPointAtS(centerline, self._current_s)
+    y_pose = state[2]
+    lat_offset = y_pose - xy_point.y()
+    if lat_offset < 0.11 and lat_offset > -0.11:
+      return np.random.uniform(self._min_vel, self._max_vel)
     return 0.0
+
+  
+  
+class SingleLaneLaneCorridorConfigwLead(SingleLaneLaneCorridorConfig):
+  """
+  Configures the a single lane, e.g., the goal.
+  """
+
+  def __init__(self,
+               params=None,
+               samplingRange=[1., 8.],
+               distanceRange=[2.0, 10.],
+               lateralOffset=[[0., 0.]],
+               longitudinalOffset=[[0., 0.]],
+               goalConfigs= None,
+               **kwargs):
+    super(SingleLaneLaneCorridorConfigwLead, self).__init__(
+      params, **kwargs)
+    self._samplingRange = samplingRange
+    self._lateralOffset = lateralOffset
+    self._longitudinalOffset = longitudinalOffset
+    self._current_s = None
+    self._distanceRange = distanceRange
+    self._hasVehicles = True
+    self._goalConfigs = goalConfigs
+
+  def get_lane_corridor(self, world):
+    if self._road_corridor == None:
+      world.map.GenerateRoadCorridor(
+        self._road_ids, XodrDrivingDirection.forward)
+      self._road_corridor = world.map.GetRoadCorridor(
+        self._road_ids, XodrDrivingDirection.forward)
+    if self._road_corridor is None:
+      return None
+    if self._lane_corridor is not None:
+      lane_corr = self._lane_corridor
+    else:
+      lane_corr = self._road_corridor.lane_corridors[self._lane_corridor_id]
+    if lane_corr is None:
+      return None
+    return lane_corr
+  
+  def state(self, world):
+    """Returns a state of the agent
+
+    Arguments:
+        world {bark.core.world}
+
+    Returns:
+        np.array -- time, x, y, theta, velocity
+    """
+    if not self._hasVehicles:
+      return None
+    if self._controlled_ids is not None:
+      # print(f"controlled ids: {self._controlled_ids}")
+      pose = self.position(world)
+      if pose is None:
+        return None
+      velocity = self.velocity()
+      return np.array([0, pose[0], pose[1], pose[2], velocity, 0.])
+    else:
+      lane_corr = self.get_lane_corridor(world)
+      if lane_corr is None:
+        return None
+      centerline = lane_corr.center_line
+
+      if not self._current_s:
+        self._current_s = self._distanceRange[0]
+      
+      if self._current_s > self._s_max:
+        return None
+      
+      self._current_s += np.random.uniform(
+        self._samplingRange[0], self._samplingRange[1])
+      
+      xy_point =  GetPointAtS(centerline, self._current_s)
+      angle = GetTangentAngleAtS(centerline, self._current_s)
+
+      lateralOffsetBounds = self._lateralOffset[np.random.randint(0, len(self._lateralOffset))]
+      lateralOffset = np.random.uniform(lateralOffsetBounds[0], lateralOffsetBounds[1])
+      longitudinalOffsetBounds = self._longitudinalOffset[
+        np.random.randint(0, len(self._longitudinalOffset))]
+      longitudinalOffset = np.random.uniform(
+        longitudinalOffsetBounds[0], longitudinalOffsetBounds[1])
+      tmp_vel = self.velocity()
+      if lateralOffset < 0.11 and lateralOffset > -0.11:
+        tmp_vel = np.random.uniform(2.0,4.0)
+      # print(f"lateral offset: {lateralOffset}, velocity: {tmp_vel}")
+      return np.array([0, xy_point.x() + longitudinalOffset, xy_point.y() + lateralOffset, angle, tmp_vel, 0.])
 
 class NaiveGoalSingleLaneLaneCorridorConfig(LaneCorridorConfig):
 
@@ -303,8 +410,8 @@ class SingleLaneBlueprint(Blueprint):
           params=local_params,
           road_ids=[0],
           lane_corridor_id=0,
-          min_vel=0.,
-          max_vel=0.,
+          min_vel=3.,
+          max_vel=5.,
           controlled_ids=None,
           lateralOffset=conf["lateralOffset"],
           samplingRange=conf["samplingRange"],
