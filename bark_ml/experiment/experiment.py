@@ -10,7 +10,8 @@ from bark_ml.core.evaluators import *
 from bark.runtime.commons.parameters import ParameterServer
 from bark.runtime.scenario.scenario_generation.configurable_scenario_generation \
   import ConfigurableScenarioGeneration # pylint: disable=unused-import
-
+from bark.runtime.scenario.scenario_generation.interaction_dataset_scenario_generation \
+    import InteractionDatasetScenarioGeneration
 
 def LoadModule(module_name, dict_items):
   """Helper function to load dictionaries.
@@ -70,7 +71,7 @@ class Experiment:
     if (art_scen_part is None) and (self._exp_params["ScenarioGeneration","", None] is None):
       return None
     filename = self._exp_params["ScenarioGeneration"]["ParamFile"]
-    num_scenarios = self._exp_params["NumScenarios","the number of scenarios of experiment",None] or self._exp_params["ScenarioGeneration"]["NumScenarios"]
+    num_scenarios = self._exp_params["NumScenarios","the number of scenarios of experiment",None] or self._exp_params["ScenarioGeneration"]["NumScenarios"]   
     if self._mode == "evaluate":
       num_scenarios = self._exp_params["NumEvaluationEpisodes"]
     if self._mode == "visualize":
