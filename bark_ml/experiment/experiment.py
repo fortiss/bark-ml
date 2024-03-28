@@ -12,6 +12,8 @@ from bark.runtime.scenario.scenario_generation.configurable_scenario_generation 
   import ConfigurableScenarioGeneration # pylint: disable=unused-import
 from bark.runtime.scenario.scenario_generation.interaction_dataset_scenario_generation \
     import InteractionDatasetScenarioGeneration
+from bark.runtime.scenario.scenario_generation.interaction_dataset_scenario_generation_full \
+    import InteractionDatasetScenarioGenerationFull
 
 def LoadModule(module_name, dict_items):
   """Helper function to load dictionaries.
@@ -92,13 +94,25 @@ class Experiment:
     """
     module_name = self._exp_params["Blueprint"]["ModuleName"]
     items = self._exp_params["Blueprint"]["Config"].ConvertToDict()
-    items["params"] = self._params
-    if self._exp_params["NumScenarios","",None] is not None:
-      items["num_scenarios"] = self._exp_params["NumScenarios"]
-    if self._mode == "evaluate":
-      items["num_scenarios"] = self._exp_params["NumEvaluationEpisodes"]
-    if self._mode == "visualize":
-      items["num_scenarios"] = self._exp_params["NumVisualizationEpisodes"]
+    # print("module_name::", module_name)
+    # print("items[num_scenarios]::", items["num_scenarios"])
+    # print("items[viewer]::", items["viewer"])
+
+    if module_name == "InteractionDatasetScenarioBlueprint" or module_name == "InteractionDatasetScenarioFullBlueprint":    
+      num_scenarios = self._exp_params["NumScenarios","the number of scenarios of experiment",None] or self._exp_params["ScenarioGeneration"]["NumScenarios"]   
+      items["num_scenarios"] = num_scenarios
+      filename = self._exp_params["ScenarioGeneration"]["ParamFile"]
+      items["params"] = ParameterServer(num_scenarios=num_scenarios, filename=filename)
+    else:
+      items["params"] = self._params
+      if self._exp_params["NumScenarios","",None] is not None:
+        items["num_scenarios"] = self._exp_params["NumScenarios"]
+    
+      if self._mode == "evaluate":
+        items["num_scenarios"] = self._exp_params["NumEvaluationEpisodes"]
+      if self._mode == "visualize":
+        items["num_scenarios"] = self._exp_params["NumVisualizationEpisodes"]
+    
     art_scen_part = self._exp_params["ArtificialScenPartion","specify the portion of artificial scennarios", None]
     if art_scen_part is not None:
       items["num_scenarios"] = int(items["num_scenarios"] * art_scen_part)
