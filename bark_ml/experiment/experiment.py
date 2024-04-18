@@ -98,7 +98,7 @@ class Experiment:
     # print("items[num_scenarios]::", items["num_scenarios"])
     # print("items[viewer]::", items["viewer"])
 
-    if module_name == "InteractionDatasetScenarioBlueprint" or module_name == "InteractionDatasetScenarioFullBlueprint":    
+    if module_name == "InteractionDatasetScenarioBlueprint" or module_name == "InteractionDatasetScenarioFullBlueprint" or module_name == "ContinuousInteractionDatasetScenarioFullBlueprint":    
       num_scenarios = self._exp_params["NumScenarios","the number of scenarios of experiment",None] or self._exp_params["ScenarioGeneration"]["NumScenarios"]   
       items["num_scenarios"] = num_scenarios
       filename = self._exp_params["ScenarioGeneration"]["ParamFile"]
@@ -117,6 +117,8 @@ class Experiment:
     if art_scen_part is not None:
       items["num_scenarios"] = int(items["num_scenarios"] * art_scen_part)
 
+    print("items in InitBlueprint: ", items)
+    
     blueprint = LoadModule(module_name, items)
     # NOTE: this should be configurable also
     blueprint._ml_behavior = BehaviorContinuousML(params=self._params)

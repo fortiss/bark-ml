@@ -8,5 +8,6 @@ from bark_ml.environments.blueprints.intersection.intersection import DiscreteIn
 from bark_ml.environments.blueprints.configurable.configurable_scenario import ConfigurableScenarioBlueprint  # pylint: disable=unused-import
 from bark_ml.environments.blueprints.configurable.interaction_scenario import InteractionDatasetScenarioBlueprint  # pylint: disable=unused-import
 from bark_ml.environments.blueprints.configurable.interaction_scenario_full import InteractionDatasetScenarioFullBlueprint  # pylint: disable=unused-import
+from bark_ml.environments.blueprints.configurable.interaction_scenario_full import ContinuousInteractionDatasetScenarioFullBlueprint  # pylint: disable=unused-import
 from bark_ml.environments.blueprints.single_lane.single_lane import ContinuousSingleLaneBlueprint  # pylint: disable=unused-import
 from bark_ml.environments.blueprints.single_lane.single_lane import *  # pylint: disable=unused-import
